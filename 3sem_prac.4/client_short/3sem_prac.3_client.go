@@ -1,0 +1,148 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+)
+
+const (
+	PORT = 6379
+)
+
+type ReportRequest struct {
+	DimensionsOrder []string `json:"dimensionsOrder"`
+}
+
+type TimeInterval struct {
+	Total int            `json:"Всего"`
+	URL   map[string]int `json:"URL"`
+}
+
+type IPReport struct {
+	Intervals map[string]TimeInterval `json:"Intervals"`
+}
+
+type FinalReport map[string]IPReport
+
+func main() {
+
+	fmt.Println("Client started ...")
+	fmt.Println("RedirectURL IPAddress Timestamp")
+	fmt.Println("Use /short/[...] to short your link")
+	fmt.Println("Enter /get/[shorted link] to get the original link")
+	fmt.Println("Enter /report/ to get report")
+
+	for {
+
+		var text string
+		fmt.Println("Enter command: ")
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		text = scanner.Text()
+
+		if len(text) <= 5 {
+			fmt.Println("Invalid URL address")
+			continue
+		}
+
+		method := strings.SplitN(text, "/", 3)
+
+		if method[1] == "short" {
+
+			resp, err := http.PostForm("http://localhost:"+strconv.Itoa(PORT)+"/", url.Values{"link": {method[2]}})
+
+			if err != nil {
+				fmt.Println("Error sending HTTP request:", err)
+				continue
+			}
+
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Println("Error reading HTTP response:", err)
+				continue
+			}
+
+			fmt.Println("Message from server:", string(body))
+
+		} else if method[1] == "get" {
+
+			resp, err := http.Get(method[2])
+
+			if err != nil {
+				fmt.Println("Error sending HTTP request:", err)
+				continue
+			}
+
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				fmt.Println("Error reading HTTP response:", err)
+				continue
+			}
+
+			fmt.Println("Message from server:", string(body))
+
+		} else if method[1] == "report" {
+
+			dimensions := strings.Split(method[2], " ")
+
+			repOrder := ReportRequest{
+				DimensionsOrder: dimensions,
+			}
+
+			jsonData, err := json.Marshal(repOrder)
+			if err != nil {
+				fmt.Println("Error marshalling JSON:", err)
+				return
+			}
+			response, err := http.Post("http://localhost:"+strconv.Itoa(PORT+1)+"/report", "application/json", bytes.NewBuffer(jsonData))
+			if err != nil {
+				fmt.Println("Error sending POST request:", err)
+				return
+			}
+			defer response.Body.Close()
+
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				fmt.Println("Error reading HTTP response:", err)
+				return
+			}
+
+			var stats FinalReport
+			err = json.Unmarshal(body, &stats)
+			if err != nil {
+				fmt.Println("Error decoding JSON:", err)
+				return
+			}
+			newData, err := json.MarshalIndent(stats, "", "    ")
+			if err != nil {
+				fmt.Println("Error marshalling data to JSON: ", err)
+				return
+			}
+
+			err = os.WriteFile("report.json", newData, 0644)
+			if err != nil {
+				fmt.Println("Error writing data to file:", err)
+				return
+			}
+
+			fmt.Println("Stats written to stats.json:", stats)
+
+		} else {
+
+			fmt.Println("Invalid method")
+			continue
+
+		}
+
+	}
+}

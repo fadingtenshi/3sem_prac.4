@@ -1,0 +1,66 @@
+[
+    {
+        "recordId": 1,
+        "parent_id": 0,
+        "redirect_url": "https://www.youtube.com/(dbae2d0)",
+        "ip_address": "0",
+        "timestamp": "0",
+        "redirect_count": 24
+    },
+    {
+        "recordId": 2,
+        "parent_id": 1,
+        "redirect_url": "https://www.youtube.com/(dbae2d0)",
+        "ip_address": "3",
+        "timestamp": "17:16",
+        "redirect_count": 8
+    },
+    {
+        "recordId": 3,
+        "parent_id": 1,
+        "redirect_url": "https://www.youtube.com/(dbae2d0)",
+        "ip_address": "2",
+        "timestamp": "17:16",
+        "redirect_count": 8
+    },
+    {
+        "recordId": 4,
+        "parent_id": 1,
+        "redirect_url": "https://www.youtube.com/(dbae2d0)",
+        "ip_address": "1",
+        "timestamp": "17:16",
+        "redirect_count": 8
+    },
+    {
+        "recordId": 5,
+        "parent_id": 0,
+        "redirect_url": "https://www.nstu.ru/(614ee69)",
+        "ip_address": "0",
+        "timestamp": "0",
+        "redirect_count": 27
+    },
+    {
+        "recordId": 6,
+        "parent_id": 5,
+        "redirect_url": "https://www.nstu.ru/(614ee69)",
+        "ip_address": "2",
+        "timestamp": "17:17",
+        "redirect_count": 10
+    },
+    {
+        "recordId": 7,
+        "parent_id": 5,
+        "redirect_url": "https://www.nstu.ru/(614ee69)",
+        "ip_address": "1",
+        "timestamp": "17:17",
+        "redirect_count": 10
+    },
+    {
+        "recordId": 8,
+        "parent_id": 5,
+        "redirect_url": "https://www.nstu.ru/(614ee69)",
+        "ip_address": "3",
+        "timestamp": "17:17",
+        "redirect_count": 7
+    }
+]
