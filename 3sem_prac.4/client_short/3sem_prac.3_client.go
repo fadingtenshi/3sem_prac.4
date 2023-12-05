@@ -15,30 +15,20 @@ import (
 
 const (
 	PORT = 6379
+	IP   = "192.168.177.235" // Your IPv4
 )
 
 type ReportRequest struct {
 	DimensionsOrder []string `json:"dimensionsOrder"`
 }
 
-type TimeInterval struct {
-	Total int            `json:"Всего"`
-	URL   map[string]int `json:"URL"`
-}
-
-type IPReport struct {
-	Intervals map[string]TimeInterval `json:"Intervals"`
-}
-
-type FinalReport map[string]IPReport
-
 func main() {
 
 	fmt.Println("Client started ...")
-	fmt.Println("RedirectURL IPAddress Timestamp")
+	fmt.Println("Dimensions: [RedirectURL IPAddress Timestamp]")
 	fmt.Println("Use /short/[...] to short your link")
 	fmt.Println("Enter /get/[shorted link] to get the original link")
-	fmt.Println("Enter /report/ to get report")
+	fmt.Println("Enter /report/[dimensions] to get report")
 
 	for {
 
@@ -50,6 +40,7 @@ func main() {
 
 		if len(text) <= 5 {
 			fmt.Println("Invalid URL address")
+
 			continue
 		}
 
@@ -57,7 +48,7 @@ func main() {
 
 		if method[1] == "short" {
 
-			resp, err := http.PostForm("http://localhost:"+strconv.Itoa(PORT)+"/", url.Values{"link": {method[2]}})
+			resp, err := http.PostForm("http://"+IP+":"+strconv.Itoa(PORT)+"/", url.Values{"link": {method[2]}})
 
 			if err != nil {
 				fmt.Println("Error sending HTTP request:", err)
@@ -95,6 +86,17 @@ func main() {
 
 			dimensions := strings.Split(method[2], " ")
 
+			for _, dimen := range dimensions {
+
+				if dimen != "IPAddress" && dimen != "RedirectURL" && dimen != "Timestamp" {
+
+					fmt.Println("Invalid URL address")
+					continue
+
+				}
+
+			}
+
 			repOrder := ReportRequest{
 				DimensionsOrder: dimensions,
 			}
@@ -104,7 +106,7 @@ func main() {
 				fmt.Println("Error marshalling JSON:", err)
 				return
 			}
-			response, err := http.Post("http://localhost:"+strconv.Itoa(PORT+1)+"/report", "application/json", bytes.NewBuffer(jsonData))
+			response, err := http.Post("http://"+IP+":"+strconv.Itoa(PORT+1)+"/report", "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
 				fmt.Println("Error sending POST request:", err)
 				return
@@ -117,25 +119,11 @@ func main() {
 				return
 			}
 
-			var stats FinalReport
-			err = json.Unmarshal(body, &stats)
+			err = os.WriteFile("report.json", body, 0644)
 			if err != nil {
-				fmt.Println("Error decoding JSON:", err)
+				fmt.Println("Error writing JSON to file:", err)
 				return
 			}
-			newData, err := json.MarshalIndent(stats, "", "    ")
-			if err != nil {
-				fmt.Println("Error marshalling data to JSON: ", err)
-				return
-			}
-
-			err = os.WriteFile("report.json", newData, 0644)
-			if err != nil {
-				fmt.Println("Error writing data to file:", err)
-				return
-			}
-
-			fmt.Println("Stats written to stats.json:", stats)
 
 		} else {
 

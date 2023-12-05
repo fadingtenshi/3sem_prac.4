@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
@@ -20,6 +18,7 @@ var links HashTable = *NewHashTable()
 
 const (
 	PORT = 6379
+	IP   = "192.168.177.235" // Your IPv4
 )
 
 type S = string
@@ -131,6 +130,16 @@ func shortenLink(link string) string {
 
 }
 
+func getNextMin(stat StatsRequest) string {
+	parsedTime, err := time.Parse("15:04", stat.Timestamp)
+	if err != nil {
+		return ""
+	}
+	newTime := parsedTime.Add(1 * time.Minute)
+	newTimeString := newTime.Format("15:04")
+	return newTimeString
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
@@ -155,13 +164,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer resp.Body.Close()
 
-		if !(resp.StatusCode >= 200 && resp.StatusCode < 300) {
-
-			fmt.Fprintf(w, "Invalid URL")
-			return
-
-		}
-
 		shortLink := shortenLink(link)
 
 		ans := insert(&links, shortLink, link, w)
@@ -172,7 +174,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		} else if ans == "OK" {
 
-			fmt.Fprintf(w, "http://localhost:6379/"+shortLink)
+			fmt.Fprintf(w, "http://"+IP+":"+strconv.Itoa(PORT)+"/"+shortLink)
 
 		} else if ans == "NFS" {
 
@@ -180,7 +182,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 
-			fmt.Fprintf(w, "This link has already been shortened: "+"http://localhost:6379/"+ans)
+			fmt.Fprintf(w, "This link has already been shortened: "+"http://"+IP+":"+strconv.Itoa(PORT)+"/"+ans)
 
 		}
 	}
@@ -203,7 +205,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Преобразование IPv6 в IPv4
 			ipAddr := net.ParseIP(ip)
 			ipv4 := ipAddr.To4()
 			if ipv4 != nil {
@@ -212,24 +213,31 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 			urlAns := usualLink + "(" + path + ")"
 
-			a := 1
-			b := 4
-
-			stat.IPAddress = strconv.Itoa(rand.Intn(b-a) + a)
+			stat.IPAddress = ip
 
 			stat.RedirectURL = urlAns
 			stat.Timestamp = currTime
-			jsonData, err := json.Marshal(stat)
+			stat.Timestamp = stat.Timestamp + " - " + getNextMin(stat)
+
+			request := map[string]StatsRequest{"type": stat}
+
+			jsonData, err := json.Marshal(request)
 			if err != nil {
 				fmt.Println("Error marshalling JSON:", err)
 				return
 			}
-			response, err := http.Post("http://localhost:"+strconv.Itoa(PORT+1)+"/", "application/json", bytes.NewBuffer(jsonData))
+			conn, err := net.Dial("tcp", IP+":"+strconv.Itoa(PORT+2))
 			if err != nil {
-				fmt.Println("Error sending POST request:", err)
+				fmt.Println("Connecting error:", err)
 				return
 			}
-			defer response.Body.Close()
+			defer conn.Close()
+
+			_, err = conn.Write(jsonData)
+			if err != nil {
+				fmt.Println("Sending error:", err)
+				return
+			}
 			http.Redirect(w, r, usualLink, http.StatusFound)
 
 		} else {
@@ -245,6 +253,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", handler)
 
-	http.ListenAndServe(":"+strconv.Itoa(PORT), mux)
+	http.ListenAndServe(IP+":"+strconv.Itoa(PORT), mux)
 
 }
