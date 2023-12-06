@@ -38,9 +38,9 @@ func main() {
 		scanner.Scan()
 		text = scanner.Text()
 
-		if len(text) <= 5 {
-			fmt.Println("Invalid URL address")
-
+		if !(strings.HasPrefix(text, "/short/")) && !(strings.HasPrefix(text, "/get")) &&
+			!(strings.HasPrefix(text, "/report/")) {
+			fmt.Println("Invalid method")
 			continue
 		}
 
@@ -124,11 +124,6 @@ func main() {
 				fmt.Println("Error writing JSON to file:", err)
 				return
 			}
-
-		} else {
-
-			fmt.Println("Invalid method")
-			continue
 
 		}
 
