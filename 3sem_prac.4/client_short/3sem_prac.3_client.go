@@ -86,17 +86,6 @@ func main() {
 
 			dimensions := strings.Split(method[2], " ")
 
-			for _, dimen := range dimensions {
-
-				if dimen != "IPAddress" && dimen != "RedirectURL" && dimen != "Timestamp" {
-
-					fmt.Println("Invalid URL address")
-					continue
-
-				}
-
-			}
-
 			repOrder := ReportRequest{
 				DimensionsOrder: dimensions,
 			}

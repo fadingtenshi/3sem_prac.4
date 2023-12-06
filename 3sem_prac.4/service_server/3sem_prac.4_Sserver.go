@@ -67,6 +67,19 @@ const (
 	IP   = "192.168.177.235" // Your IPv4
 )
 
+func getKey(stat StatsRequest, dimension string) string {
+	switch dimension {
+	case "RedirectURL":
+		return stat.RedirectURL
+	case "IPAddress":
+		return stat.IPAddress
+	case "Timestamp":
+		return stat.Timestamp
+	default:
+		return ""
+	}
+}
+
 func buildReport(dimensions []string, data []StatsRequest) *StatsReport {
 	root := &StatsReport{
 		ID:       1,
@@ -114,19 +127,6 @@ func buildReport(dimensions []string, data []StatsRequest) *StatsReport {
 	return root
 }
 
-func getKey(stat StatsRequest, dimension string) string {
-	switch dimension {
-	case "RedirectURL":
-		return stat.RedirectURL
-	case "IPAddress":
-		return stat.IPAddress
-	case "Timestamp":
-		return stat.Timestamp
-	default:
-		return ""
-	}
-}
-
 func getReport(w http.ResponseWriter, r *http.Request) {
 
 	var repOrder ReportRequest
@@ -139,7 +139,7 @@ func getReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	request := map[string]StatsRequest{"type": StatsRequest{Timestamp: "0"}}
+	var request map[string]StatsRequest
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -195,11 +195,43 @@ func getReport(w http.ResponseWriter, r *http.Request) {
 	w.Write(reportJSON)
 }
 
+func sendInfo(w http.ResponseWriter, r *http.Request) {
+
+	var request map[string]StatsRequest
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&request)
+	if err != nil {
+		http.Error(w, "Failed to decode JSON", http.StatusBadRequest)
+		return
+	}
+
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	conn, err := net.Dial("tcp", IP+":"+strconv.Itoa(PORT+1))
+	if err != nil {
+		fmt.Println("Connecting error:", err)
+		return
+	}
+	defer conn.Close()
+
+	_, err = conn.Write(jsonData)
+	if err != nil {
+		fmt.Println("Sending error:", err)
+		return
+	}
+
+}
+
 func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/report", getReport)
-
+	mux.HandleFunc("/", sendInfo)
 	fmt.Println("HTTP Server listening on " + strconv.Itoa(PORT))
 	err := http.ListenAndServe(IP+":"+strconv.Itoa(PORT), mux)
 	if err != nil {

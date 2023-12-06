@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -226,18 +227,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 				fmt.Println("Error marshalling JSON:", err)
 				return
 			}
-			conn, err := net.Dial("tcp", IP+":"+strconv.Itoa(PORT+2))
-			if err != nil {
-				fmt.Println("Connecting error:", err)
-				return
-			}
-			defer conn.Close()
 
-			_, err = conn.Write(jsonData)
+			response, err := http.Post("http://"+IP+":"+strconv.Itoa(PORT+1)+"/", "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
-				fmt.Println("Sending error:", err)
+				fmt.Println("Error sending POST request:", err)
 				return
 			}
+			defer response.Body.Close()
+
 			http.Redirect(w, r, usualLink, http.StatusFound)
 
 		} else {

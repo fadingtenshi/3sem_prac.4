@@ -71,11 +71,7 @@ func handlerFunc(conn net.Conn) {
 		return
 	}
 
-	if request["type"].Timestamp != "0" {
-
-		queue.push(request["type"])
-
-	} else {
+	if len(request["type"].Timestamp) == 0 {
 
 		queueJSON, err := json.MarshalIndent(queue, "", "    ")
 		if err != nil {
@@ -88,6 +84,8 @@ func handlerFunc(conn net.Conn) {
 			fmt.Println("Error sending data:", err)
 			return
 		}
+	} else {
+		queue.push(request["type"])
 	}
 }
 
